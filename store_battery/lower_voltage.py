@@ -23,24 +23,36 @@ class LowerVoltage(Node):
 
     def __init__(self):
         super().__init__('lower_voltage')
+        self.twist = Twist()
         self.voltage = -1
+        self.last_voltage = -1
+
         self.sub_battery = self.create_subscription(
             BatteryState, BATTERY_TOPIC, self.upade_battery, 10)
         self.pub_vel = self.create_publisher(Twist, VELOCITY_TOPIC, 1)
         timer_period = 0.2  # seconds
         self.timer = self.create_timer(timer_period, self.send_velocity)
+        
+        
 
     def send_velocity(self):
         rotation_speed = 0.1
-        if self.voltage == -1 or self.voltage < PACK_VOLTAGE:
+        low_voltage = self.voltage < PACK_VOLTAGE
+        if low_voltage:
+            if low_voltage != -1 and self.twist.angular.z > 0:
+                self.get_logger().info(
+                    f'Voltage at: {self.voltage} (below {PACK_VOLTAGE})'
+                    ', stopped moving')
             rotation_speed = 0.0
-        twist = Twist()
-        twist.angular.z = rotation_speed
-        self.pub_vel.publish(twist)
+        
+        self.twist.angular.z = rotation_speed
+        self.pub_vel.publish(self.twist)
 
     def upade_battery(self, msg):
         self.voltage = msg.voltage
-        self.get_logger().info(f'Current voltage: {self.voltage}')
+        if abs(self.voltage - self.last_voltage) > 0.045:
+            self.last_voltage = self.voltage
+            self.get_logger().info(f'Current voltage: {self.voltage}')
 
 def main(args=None):
     rclpy.init(args=args)
