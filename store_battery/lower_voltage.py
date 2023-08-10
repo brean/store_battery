@@ -36,14 +36,12 @@ class LowerVoltage(Node):
         
 
     def send_velocity(self):
-        rotation_speed = 0.1
         low_voltage = self.voltage < PACK_VOLTAGE
-        if low_voltage:
-            if low_voltage != -1 and self.twist.angular.z > 0:
-                self.get_logger().info(
-                    f'Voltage at: {self.voltage} (below {PACK_VOLTAGE})'
-                    ', stopped moving')
-            rotation_speed = 0.0
+        rotation_speed = 0.0 if low_voltage else 0.1
+        if low_voltage and self.voltage != -1 and self.twist.angular.z > 0:
+            self.get_logger().info(
+                f'Voltage at: {self.voltage} (below {PACK_VOLTAGE})'
+                ', stopped moving')
         
         self.twist.angular.z = rotation_speed
         self.pub_vel.publish(self.twist)
