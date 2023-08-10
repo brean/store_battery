@@ -10,13 +10,16 @@ This uses the velocity command of your robot/the motors to discharge the batteri
 Once the wheels stop turning the battery should be at storage level, shut down the robot then.
 
 # Installation
-copy to your colcon-workspace `src/`-folder and run:
+copy/clone this folder into your colcon-workspace `src/`-folder and run:
 
 ```bash
-# ```~/ros_ws
+cd ~/ros_ws/src/
+git clone git@github.com:brean/store_battery.git
+cd ~/ros_ws
 colcon build
 ```
-and re-source your environment
+
+and re-source your environment:
 
 ```bash
 source install/setup.bash
