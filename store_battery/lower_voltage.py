@@ -31,11 +31,11 @@ class LowerVoltage(Node):
         self.timer = self.create_timer(timer_period, self.send_velocity)
 
     def send_velocity(self):
+        rotation_speed = 0.1
         if self.voltage == -1 or self.voltage < PACK_VOLTAGE:
-            return
+            rotation_speed = 0
         twist = Twist()
-        twist.angular.z = .1
-        twist.linear.x = 0.0
+        twist.angular.z = rotation_speed
         self.pub_vel.publish(twist)
 
     def upade_battery(self, msg):
