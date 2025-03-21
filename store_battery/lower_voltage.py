@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import BatteryState
+from turtlebot3_msgs.srv import Sound
 
 
 # number of cells in your battery pack
@@ -17,6 +18,8 @@ PACK_VOLTAGE = CELL_VOLTAGE * CELLS
 
 VELOCITY_TOPIC = '/cmd_vel'
 BATTERY_TOPIC = '/battery_state'
+SOUND_TOPIC = '/sound'
+SOUND = 0  # OFF-sound
 
 
 class LowerVoltage(Node):
@@ -27,10 +30,13 @@ class LowerVoltage(Node):
         self.voltage = -1
         self.last_voltage = -1
         self.rotation_speed = -1
+        self.last_sound = -1
 
         self.sub_battery = self.create_subscription(
             BatteryState, BATTERY_TOPIC, self.upade_battery, 10)
         self.pub_vel = self.create_publisher(Twist, VELOCITY_TOPIC, 1)
+        self.sound_cli = self.create_client(Sound, SOUND_TOPIC)
+
         timer_period = 0.2  # seconds
         self.timer = self.create_timer(timer_period, self.send_velocity)
 
@@ -41,12 +47,16 @@ class LowerVoltage(Node):
             self.get_logger().info(
                 f'Voltage at: {self.voltage:.3f} (below {PACK_VOLTAGE:.3f})'
                 ', stopped moving')
+            self.play_sound()
         if self.rotation_speed != rotation_speed:
             self.rotation_speed = rotation_speed
             twist = Twist()
             twist.angular.z = self.rotation_speed
             self.pub_vel.publish(twist)
             self.get_logger().info(f'Publishing: "{twist}"')
+
+    def play_sound(self):
+        self.sound_cli.call(Sound.Request(value=SOUND))
 
     def send_stop(self):
         self.pub_vel.publish(Twist())
@@ -58,6 +68,7 @@ class LowerVoltage(Node):
             self.last_voltage = self.voltage
             self.get_logger().info(
                 f'Current voltage: {self.voltage:.3f} ({percentage:.1f} %)')
+
 
 def main(args=None):
     rclpy.init(args=args)
