@@ -23,7 +23,7 @@ class LowerVoltage(Node):
     def __init__(self):
         super().__init__('lower_voltage')
         self.get_logger().info(f'Low voltage will be {PACK_VOLTAGE:.3f} volt.')
-        
+
         self.voltage = -1
         self.last_voltage = -1
         self.rotation_speed = -1
@@ -33,19 +33,20 @@ class LowerVoltage(Node):
         self.pub_vel = self.create_publisher(Twist, VELOCITY_TOPIC, 1)
         timer_period = 0.2  # seconds
         self.timer = self.create_timer(timer_period, self.send_velocity)
-        
+
     def send_velocity(self):
         low_voltage = self.voltage < PACK_VOLTAGE
         rotation_speed = 0.0 if low_voltage else 0.1
         if low_voltage and self.voltage != -1:
             self.get_logger().info(
-                f'Voltage at: {self.voltage} (below {PACK_VOLTAGE})'
+                f'Voltage at: {self.voltage:.3f} (below {PACK_VOLTAGE:.3f})'
                 ', stopped moving')
         if self.rotation_speed != rotation_speed:
             self.rotation_speed = rotation_speed
             twist = Twist()
             twist.angular.z = self.rotation_speed
             self.pub_vel.publish(twist)
+            self.get_logger().info(f'Publishing: "{twist}"')
 
     def send_stop(self):
         self.pub_vel.publish(Twist())
