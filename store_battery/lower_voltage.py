@@ -1,7 +1,10 @@
+import time
+
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import BatteryState
+
 from turtlebot3_msgs.srv import Sound
 
 
@@ -56,7 +59,10 @@ class LowerVoltage(Node):
             self.get_logger().info(f'Publishing: "{twist}"')
 
     def play_sound(self):
-        self.sound_cli.call(Sound.Request(value=SOUND))
+        now = time.time()
+        if now - self.last_sound > 5:
+            self.last_sound = now
+            self.sound_cli.call(Sound.Request(value=SOUND))
 
     def send_stop(self):
         self.pub_vel.publish(Twist())
