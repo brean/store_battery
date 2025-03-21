@@ -11,7 +11,7 @@ CELLS = 3
 # Because the cells might be charged unevenly you could set something
 # a little bit lower (e.g. 3.65) and then use a balanced charger to
 # get them charged evenly.
-CELL_VOLTAGE = 3.7
+CELL_VOLTAGE = 3.75
 
 PACK_VOLTAGE = CELL_VOLTAGE * CELLS
 
@@ -20,12 +20,13 @@ BATTERY_TOPIC = '/battery_state'
 
 
 class LowerVoltage(Node):
-
     def __init__(self):
         super().__init__('lower_voltage')
-        self.twist = Twist()
+        self.get_logger().info(f'Low voltage will be {PACK_VOLTAGE:.3f} volt.')
+        
         self.voltage = -1
         self.last_voltage = -1
+        self.rotation_speed = -1
 
         self.sub_battery = self.create_subscription(
             BatteryState, BATTERY_TOPIC, self.upade_battery, 10)
@@ -33,24 +34,29 @@ class LowerVoltage(Node):
         timer_period = 0.2  # seconds
         self.timer = self.create_timer(timer_period, self.send_velocity)
         
-        
-
     def send_velocity(self):
         low_voltage = self.voltage < PACK_VOLTAGE
         rotation_speed = 0.0 if low_voltage else 0.1
-        if low_voltage and self.voltage != -1 and self.twist.angular.z > 0:
+        if low_voltage and self.voltage != -1:
             self.get_logger().info(
                 f'Voltage at: {self.voltage} (below {PACK_VOLTAGE})'
                 ', stopped moving')
-        
-        self.twist.angular.z = rotation_speed
-        self.pub_vel.publish(self.twist)
+        if self.rotation_speed != rotation_speed:
+            self.rotation_speed = rotation_speed
+            twist = Twist()
+            twist.angular.z = self.rotation_speed
+            self.pub_vel.publish(twist)
+
+    def send_stop(self):
+        self.pub_vel.publish(Twist())
 
     def upade_battery(self, msg):
-        self.voltage = msg.voltage
+        self.voltage = float(msg.voltage)
+        percentage = float(msg.percentage)
         if abs(self.voltage - self.last_voltage) > 0.045:
             self.last_voltage = self.voltage
-            self.get_logger().info(f'Current voltage: {self.voltage}')
+            self.get_logger().info(
+                f'Current voltage: {self.voltage:.3f} ({percentage:.1f} %)')
 
 def main(args=None):
     rclpy.init(args=args)
